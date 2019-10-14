@@ -47,8 +47,9 @@ for i in range(len(rootgrps)):
     temps = rootgrps[i]["temperature"][0,25:31,40,40]
     cs = interp1d(depths,temps,kind='cubic')
     HC.append(0)
+    theta = cs(xs)
     for j in range(len(xs)):
-        HC[i] += rho*Cp*cs(xs)[j]*1
+        HC[i] += rho*Cp*theta[j]*1
     
     #to show how much the loop has progressed so far:
     sys.stdout.write('\r')
