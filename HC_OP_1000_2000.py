@@ -50,12 +50,8 @@ for i in range(len(rootgrps)):
     theta = cs(xs)
     for j in range(len(xs)):
         HC[i] += rho*Cp*theta[j]*1
-    
-    #to show how much the loop has progressed so far:
-    sys.stdout.write('\r')
-    sys.stdout.write("[%-100s] %d%%" % ('/'*i, 100/len(rootgrps)*i))
-    sys.stdout.flush()
-    
+
+
 position_analysed = str(rootgrps[0]["lat"][40])+"N "+str(rootgrps[0]["lon"][40])+"E" #fetches coordinates
     
 #fig, ax = plt.subplots(figsize=(6.5, 4))
