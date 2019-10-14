@@ -46,10 +46,13 @@ xs = np.arange(970,2120,1) #depths spaced by 1m
 for i in range(len(rootgrps)):
     temps = rootgrps[i]["temperature"][0,25:31,40,40]
     cs = interp1d(depths,temps,kind='cubic')
-    HC.append(0)
     theta = cs(xs)
+    HC_i = 0
     for j in range(len(xs)):
-        HC[i] += rho*Cp*theta[j]*1
+        HC_i += theta[j]
+    HC.append(HC_i)
+HC  = np.asarray(HC)
+HC *= rho*Cp
 
 
 position_analysed = str(rootgrps[0]["lat"][40])+"N "+str(rootgrps[0]["lon"][40])+"E" #fetches coordinates
