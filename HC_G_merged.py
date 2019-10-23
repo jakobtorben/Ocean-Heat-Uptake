@@ -11,13 +11,11 @@ NB: lat = lat index - 83
 import matplotlib.pyplot as plt
 import numpy as np
 import os
-os.environ["PROJ_LIB"] = "C:/Users/benro/.conda/pkgs/proj4-5.2.0-ha925a31_1/Library/share"; #fixr
+os.environ["PROJ_LIB"] = "C:/Users/jakob/Anaconda3/Library/share"; #fixr
 import time
 from mpl_toolkits.basemap import Basemap
 from scipy.interpolate import interp1d
 import netCDF4 as nt
-#from time import sleep
-import sys
 
 start = time.time()
 Cp = 3850 #Heat capacity of seawater
@@ -102,14 +100,12 @@ def calculate_HC_global(rootgrps,depth_from,depth_to):
     depth_from, depth_to = depth_ind(rootgrps, depth_from, depth_to)
     lon = rootgrps[0]["lon"][:]
     lat = rootgrps[0]["lat"][:]
-
-    ln2, lt2 = np.meshgrid(lon,lat)
-    HC_grid_i = (np.ma.zeros(np.shape(lt2)))
+    HC_grid_i = np.ma.zeros([len(lat), len(lon)])
     HC_grid = np.ma.masked_all_like(HC_grid_i)
 
     for i in range(len(rootgrps)):  #loops through every month
-        for lt in range(len(lat)):#range(int(lat[0]), int(lat[len(lat)-1])+1):  #latitude
-            for ln in range(len(lon)):#range(int(lon[0]), int(lon[len(lon)-1])+1):  #longitutde
+        for lt in range(len(lat)):
+            for ln in range(len(lon)):
                 if np.ma.all(rootgrps[i]["temperature"][0,depth_from:(depth_to+1),lt,ln].mask) == False: #checks if all temp data at location are empty  
                     if np.ma.any(rootgrps[i]["temperature"][0,depth_from:(depth_to+1),lt,ln].mask) == True:   # finds data with empty temps to separate values depth<depthrange
                         count = 0
@@ -119,19 +115,16 @@ def calculate_HC_global(rootgrps,depth_from,depth_to):
                         depths = rootgrps[i]["depth"][depth_from:(depth_to-count+1)] #finds the limited depth
                     else:
                         depths = rootgrps[i]["depth"][depth_from:(depth_to+1)] #depth is given by depthrange  
-                    temps = (rootgrps[i]["temperature"][0,depth_from:(depth_to+len(depths)),lt,ln])
+                    temps = (rootgrps[i]["temperature"][0,depth_from:(depth_from+len(depths)),lt,ln])
                     if len(temps) > 3:  #can only interpolate with enough data points
                         cs = interp1d(depths,temps,kind='cubic')
                         xs = np.arange(depths[0],depths[len(depths)-1],1) #depths spaced by 1m
                         theta = cs(xs)
-                        #HC_i = 0
-                       # for k in range(len(xs)): 
-                        #    HC_i += theta[k]
                         ones = np.zeros((len(xs)))
-                        for i in range(len(ones)):
-                            ones[i] = 1   
+                        for k in range(len(ones)):
+                            ones[k] = 1   
                         HC_grid[lt, ln] = np.dot(theta,ones) #sums over all interpolated temperatures more efficiently
-                        HC_grid *= rho*Cp
+    HC_grid *= rho*Cp
     return HC_grid
 
 
@@ -139,8 +132,8 @@ def monthly_avgs(HC):
     """For a given dataset of HCs, outputs an array of length 12 giving the mean HC value 
     for each month."""
     monthlies = np.zeros((int(len(HC)/12),12))
-    counter_m = 0
-    counter_n = 0
+    counter_m = 0   #keeps track of years
+    counter_n = 0   #keeps track of months
     for i in range(len(HC)):
         if counter_n<12:
             monthlies[counter_m,counter_n] = HC[i]
@@ -169,7 +162,37 @@ def run(start_year, end_year, depth_from, depth_to):
     
     return years, times, HC, pos, months, month_avgs
 
-years, times, HC, pos, months, month_avgs = run(1950, 2018, 25, 31)
+def run_global(start_year, end_year, depth_from, depth_to, animate=True):
+    """Basically a main; runs all functions defined above."""
+    #years, times, rootgrps = retrieve(1950,2018)
+    rootgrps = [nt.Dataset("EN.4.2.1.analyses.g10.1950\EN.4.2.1.f.analysis.g10.195001.nc", "r+", format="NETCDF4")]
+    
+    HC = calculate_HC_global(rootgrps, 0, 1000)
+    if animate == True:
+        plot(rootgrps, HC)
+    
+    #months, month_avgs = monthly_avgs(HC)
+    
+    return HC #, months, month_avgs
+
+def plot(rootgrps, HC_grid):
+    lon = rootgrps[0]["lon"][:]
+    lat = rootgrps[0]["lat"][:]
+    lon2, lat2 = np.meshgrid(lon,lat)
+    m = Basemap(projection='cyl',lat_0=0,lon_0=180,resolution='l')
+    x, y = m(lon2, lat2)
+    m.drawparallels(np.arange(-80.,81.,20.))
+    m.drawmeridians(np.arange(-180.,181.,20.))
+    m.drawmapboundary(fill_color='white')
+    m.fillcontinents('grey')
+    m.contourf(x, y, HC_grid, 30, cmap=plt.cm.coolwarm)
+    plt.colorbar()
+    plt.show()
+
+#years, times, HC, pos, months, month_avgs = run(1950, 2018, 25, 31)
+HC = run_global(1950, 2018, 0, 1000)
+
+
 
     
 #fig, ax = plt.subplots(figsize=(6.5, 4))
@@ -179,7 +202,7 @@ years, times, HC, pos, months, month_avgs = run(1950, 2018, 25, 31)
 #plt.grid()
 #plt.show()
 print(time.time()-start)
-
+"""
 csfont = {'fontname':'Helvetica'}
 hfont = {'fontname':'Helvetica'}
 
@@ -205,3 +228,4 @@ plt.xlabel("Year", **csfont)
 plt.ylabel("Heat Content Monthly Average ($Jm^{-2}$)", **csfont, labelpad = 1)
 plt.grid(color="white")
 plt.show()
+"""
