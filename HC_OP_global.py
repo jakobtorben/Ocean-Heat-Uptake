@@ -61,16 +61,13 @@ def vol(depthtop, depthbot, lat):
     dln = dlt = 1*np.pi/180
     lt = lat*np.pi/180
     dA = rtop*rtop*np.cos(lt)*(1-e*e)*dlt*dln/(1-e*e*np.sin(lt)*np.sin(lt))**2    #area
-    dV = dA*(depthbot-depthtop)  #volume
-    #dr = rtop - rbot
-    #volume = rbot*rbot*abs(np.sin(lat*np.pi/180))*1*1*dr  #dV=r^2*sin(ϴ)*dϴ*d*ϕ*dr
-    volume = rtop*rtop*abs(np.sin(lt*np.pi/180))*dln*dlt*(depthbot-depthtop)
+    dV = dA*(depthbot-depthtop)  #volume, need to change depth if integrating
     return dV
 
 
 
-lon = rootgrps[0]["lon"][:]
-lat = rootgrps[0]["lat"][:]
+lon = rootgrps[0]["lon"][0:30]
+lat = rootgrps[0]["lat"][10:160]
 #print('lon', len(lon), lon)
 #print('lat', len(lat), lat)
 
@@ -78,6 +75,7 @@ ln2, lt2 = np.meshgrid(lon,lat)
 HC_grid_i = (np.ma.zeros(np.shape(lt2)))
 HC_grid = np.ma.masked_all_like(HC_grid_i)
 
+print('Before loop', datetime.now() - startTime)
 
 temps = []
 for i in range(len(rootgrps)):  #loops through every month
@@ -104,6 +102,7 @@ for i in range(len(rootgrps)):  #loops through every month
                     HC_grid[lt, ln] = HC_i
                     #print(lt,ln)
 
+print('After loop', datetime.now() - startTime)
 
 HC_grid *= rho*Cp 
 lon2, lat2 = np.meshgrid(lon,lat)

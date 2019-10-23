@@ -119,11 +119,14 @@ def calculate_HC_global(rootgrps,depth_from,depth_to):
                         cs = interp1d(depths,temps,kind='cubic')
                         xs = np.arange(depths[0],depths[len(depths)-1],1) #depths spaced by 1m
                         theta = cs(xs)
-                        HC_i = 0
-                        for k in range(len(xs)): 
-                            HC_i += theta[k]
-                        HC_grid[lt, ln] = HC_i
-    HC_grid *= rho*Cp 
+                        #HC_i = 0
+                       # for k in range(len(xs)): 
+                        #    HC_i += theta[k]
+                        ones = np.zeros((len(xs)))
+                        for i in range(len(ones)):
+                            ones[i] = 1   
+                        HC_grid[lt, ln] = np.dot(theta,ones) #sums over all interpolated temperatures more efficiently
+                        HC_grid *= rho*Cp
     return HC_grid
 
 
