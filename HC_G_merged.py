@@ -60,10 +60,15 @@ def depth_ind(rootgrps, depth_from, depth_to):
 
 
 def calculate_HC(rootgrps,depth_from,depth_to,lat,lon,calculate_errors = False):
+    """Input depth range in terms of indices, input lattitude and longitude (not the indices),
+    calculate_errors doesn't currently work. Outputs an array of length <the number of 
+    months analysed>. NB: the array named - ones - exists so that the dot product of it 
+    with thetas, the temperature array, can be found: equivalent, but more efficient than 
+    summing over thetas."""
     depth_from, depth_to = depth_ind(rootgrps, depth_from, depth_to)
     depths = rootgrps[0]["depth"][depth_from:depth_to]
     xs = np.arange(depths[0],depths[len(depths)-1],1) #depths spaced by 1m
-    ones = np.zeros((len(xs)))
+    ones = np.zeros((len(xs))) #ones for the dot product with thetas (equivalent to summing over thetas)
     for i in range(len(ones)):
         ones[i] = 1
     HC = np.zeros((len(rootgrps)))
@@ -131,6 +136,8 @@ def calculate_HC_global(rootgrps,depth_from,depth_to):
 
 
 def monthly_avgs(HC):
+    """For a given dataset of HCs, outputs an array of length 12 giving the mean HC value 
+    for each month."""
     monthlies = np.zeros((int(len(HC)/12),12))
     counter_m = 0
     counter_n = 0
@@ -152,6 +159,7 @@ def monthly_avgs(HC):
 
 
 def run(start_year, end_year, depth_from, depth_to):
+    """Basically a main; runs all functions defined above."""
     years, times, rootgrps = retrieve(1950,2018)
     
     HC = calculate_HC(rootgrps,25,31, -43, 41)
