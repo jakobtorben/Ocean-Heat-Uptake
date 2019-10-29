@@ -11,7 +11,7 @@ NB: lat = lat index - 83
 import matplotlib.pyplot as plt
 import numpy as np
 import os
-os.environ["PROJ_LIB"] = "C:/Users/jakob/Anaconda3/Library/share"; #fixr
+os.environ["PROJ_LIB"] = "C:/Users/benro/.conda/pkgs/proj4-5.2.0-ha925a31_1/Library/share"; #fixr
 import time
 from mpl_toolkits.basemap import Basemap
 from scipy.interpolate import interp1d
@@ -54,7 +54,7 @@ def depth_ind(rootgrps, depth_from, depth_to):
             count += 1
         elif depths[i] > depth_to and depths[i-1] <= depth_to:
             depth_to_i = i - 1
-    return depth_from_i, depth_to_i            
+    return depth_from_i, depth_to_i
 
 
 def calculate_HC(rootgrps,depth_from,depth_to,lat,lon,calculate_errors = False):
@@ -96,34 +96,42 @@ def calculate_HC(rootgrps,depth_from,depth_to,lat,lon,calculate_errors = False):
         return HC
 
 
-def calculate_HC_global(rootgrps,depth_from,depth_to):
-    depth_from, depth_to = depth_ind(rootgrps, depth_from, depth_to)
+def calculate_HC_global(rootgrps,start_year,depth_from_i,depth_to_i):
+    depth_from, depth_to = depth_ind(rootgrps, depth_from_i, depth_to_i)
     lon = rootgrps[0]["lon"][:]
     lat = rootgrps[0]["lat"][:]
-    HC_grid_i = np.ma.zeros([len(lat), len(lon)])
+    depths_i = rootgrps[0]["depth"][:]
+    HC_grid_i = np.ma.zeros([len(rootgrps),len(lat),len(lon)])
     HC_grid = np.ma.masked_all_like(HC_grid_i)
-
+    #HC_grid_i = np.ma.zeros([len(lat), len(lon)])
+    #HC_grid = np.ma.masked_all_like(HC_grid_i)
+    year = start_year
+    month = 1
     for i in range(len(rootgrps)):  #loops through every month
         for lt in range(len(lat)):
             for ln in range(len(lon)):
-                if np.ma.all(rootgrps[i]["temperature"][0,depth_from:(depth_to+1),lt,ln].mask) == False: #checks if all temp data at location are empty  
-                    if np.ma.any(rootgrps[i]["temperature"][0,depth_from:(depth_to+1),lt,ln].mask) == True:   # finds data with empty temps to separate values depth<depthrange
-                        count = 0
-                        for j in rootgrps[i]["temperature"][0,depth_from:(depth_to+1),lt,ln].mask:
-                            if j == True:
-                                count += 1
-                        depths = rootgrps[i]["depth"][depth_from:(depth_to-count+1)] #finds the limited depth
+                temp_mask = rootgrps[i]["temperature"][0,depth_from:(depth_to+1),lt,ln].mask
+                if np.ma.all(temp_mask) == False: #checks if all temp data at location are empty
+                    if np.ma.any(temp_mask) == True:   # finds data with empty temps to separate values depth<depthrange
+                        pos = np.where(temp_mask == True)[0][0]
+                        depths = depths_i[depth_from:(pos)] #finds the limited depth
                     else:
-                        depths = rootgrps[i]["depth"][depth_from:(depth_to+1)] #depth is given by depthrange  
+                        depths = depths_i[depth_from:(depth_to)] #depth is given by depthrange  
                     temps = (rootgrps[i]["temperature"][0,depth_from:(depth_from+len(depths)),lt,ln])
                     if len(temps) > 3:  #can only interpolate with enough data points
                         cs = interp1d(depths,temps,kind='cubic')
                         xs = np.arange(depths[0],depths[len(depths)-1],1) #depths spaced by 1m
                         theta = cs(xs)
-                        ones = np.zeros((len(xs)))
-                        for k in range(len(ones)):
-                            ones[k] = 1   
-                        HC_grid[lt, ln] = np.dot(theta,ones) #sums over all interpolated temperatures more efficiently
+                        ones = np.ones((len(xs)))  
+                        #HC_grid[lt, ln] = np.dot(theta,ones) #sums over all interpolated temperatures more efficiently
+                        HC_grid[i,lt,ln] = np.dot(theta,ones)
+        HC_i = HC_grid[i,:,:]*rho*Cp
+        np.savetxt("HC_grid_"+"year_"+str(year)+"_month_"+str(month)+"_"+str(depth_from_i)+"m_"+str(depth_to_i)+"m.txt",HC_i,delimiter=", ")
+        if month < 12:
+            month += 1
+        else:
+            month = 1
+            year += 1
     HC_grid *= rho*Cp
     return HC_grid
 
@@ -153,7 +161,7 @@ def monthly_avgs(HC):
 
 def run(start_year, end_year, depth_from, depth_to):
     """Basically a main; runs all functions defined above."""
-    years, times, rootgrps = retrieve(1950,2018)
+    years, times, rootgrps = retrieve(start_year,end_year)
     
     HC = calculate_HC(rootgrps,25,31, -43, 41)
     
@@ -165,9 +173,10 @@ def run(start_year, end_year, depth_from, depth_to):
 def run_global(start_year, end_year, depth_from, depth_to, animate=True):
     """Basically a main; runs all functions defined above."""
     #years, times, rootgrps = retrieve(1950,2018)
-    rootgrps = [nt.Dataset("EN.4.2.1.analyses.g10.1950\EN.4.2.1.f.analysis.g10.195001.nc", "r+", format="NETCDF4")]
+    #rootgrps = [nt.Dataset("EN.4.2.1.analyses.g10.1950\EN.4.2.1.f.analysis.g10.195001.nc", "r+", format="NETCDF4")]
+    years, times, rootgrps = retrieve(start_year,end_year)
     
-    HC = calculate_HC_global(rootgrps, 0, 1000)
+    HC = calculate_HC_global(rootgrps, start_year, 0, 1000)
     if animate == True:
         plot(rootgrps, HC)
     
@@ -176,25 +185,23 @@ def run_global(start_year, end_year, depth_from, depth_to, animate=True):
     return HC #, months, month_avgs
 
 def plot(rootgrps, HC_grid):
-    lon = rootgrps[0]["lon"][:]
-    lat = rootgrps[0]["lat"][:]
-    lon2, lat2 = np.meshgrid(lon,lat)
-    m = Basemap(projection='cyl',lat_0=0,lon_0=180,resolution='l')
-    x, y = m(lon2, lat2)
-    m.drawparallels(np.arange(-80.,81.,20.))
-    m.drawmeridians(np.arange(-180.,181.,20.))
-    m.drawmapboundary(fill_color='white')
-    m.fillcontinents('grey')
-    m.contourf(x, y, HC_grid, 30, cmap=plt.cm.coolwarm)
-    plt.colorbar()
-    plt.show()
+    for i in range(len(rootgrps)):
+        lon = rootgrps[0]["lon"][:]
+        lat = rootgrps[0]["lat"][:]
+        lon2, lat2 = np.meshgrid(lon,lat)
+        m = Basemap(projection='cyl',lat_0=0,lon_0=180,resolution='l')
+        x, y = m(lon2, lat2)
+        m.drawparallels(np.arange(-80.,81.,20.))
+        m.drawmeridians(np.arange(-180.,181.,20.))
+        m.drawmapboundary(fill_color='white')
+        m.fillcontinents('grey')
+        m.contourf(x, y, HC_grid[i,:,:], 30, cmap=plt.cm.coolwarm)
+        plt.colorbar()
+        plt.show()
 
 #years, times, HC, pos, months, month_avgs = run(1950, 2018, 25, 31)
-HC = run_global(1950, 2018, 0, 1000)
+HC = run_global(1960, 1962, 0, 1000, False)
 
-
-
-    
 #fig, ax = plt.subplots(figsize=(6.5, 4))
 #ax.plot(depths,temps0,"x")
 #ax.plot(xs0,cs0(xs0))
