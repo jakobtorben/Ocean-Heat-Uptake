@@ -56,6 +56,15 @@ def depth_ind(rootgrps, depth_from, depth_to):
             depth_to_i = i - 1
     return depth_from_i, depth_to_i
 
+def area(depthtop, lat):
+    re = 6378.137*1e3 #equatorial radius earth (m)
+    rtop = re-depthtop
+    e = 0.08181919  #eccentricity
+    dln = dlt = 1*np.pi/180
+    lt = lat*np.pi/180
+    dA = rtop*rtop*np.cos(lt)*(1-e*e)*dlt*dln/(1-e*e*np.sin(lt)*np.sin(lt))**2    #area
+    return dA
+
 
 def calculate_HC(rootgrps,depth_from,depth_to,lat,lon,calculate_errors = False):
     """Input depth range in terms of indices, input lattitude and longitude (not the indices),
