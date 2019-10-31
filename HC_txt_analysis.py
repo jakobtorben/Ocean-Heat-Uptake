@@ -40,6 +40,8 @@ def read_HC(start_year, end_year,depth_from, depth_to):
     year = start_year
     month = 1
     for i in range(n_years):
+        if i%5==0:
+            print("Read "+str(i)+" of "+str(n_years)+" years")
         for j in range(12):
             HC_j = np.loadtxt("HC_grid_"+"year_"+str(year)+"_month_"+str(month)+"_"+str(depth_from)+"m_"+str(depth_to)+"m.txt",delimiter=", ")
             for m in range(173):
@@ -88,14 +90,13 @@ def plot_HC_maps(start_year, depth_from, depth_to, rootgrps, HC_grid):
         filenames.append("HC_"+str(depth_from)+"m_"+str(depth_to)+"m_"+str(time)+".png")
         #plt.show()
         plt.close(fig)
-    
     images = []
     for filename in filenames:
         images.append(imageio.imread(filename))
     imageio.mimsave("HC_"+str(depth_from)+"m_"+str(depth_to)+"m_from_"+str(start_year)+"_to_"+str(time)+".gif",
                 images, duration=0.4)
-    
 
+    
 def area(depthtop, lat):
     re = 6378.137*1e3 #equatorial radius earth (m)
     rtop = re-depthtop
@@ -109,9 +110,12 @@ def area(depthtop, lat):
 def ttl_global_HC(depth_from, HC):
     ttl_global = np.zeros((len(HC[:,0,0])))
     for i in range(len(HC[:,0,0])):
+        if i%60 == 0:
+            print("Calculated "+str(i/12)+" of "+str(len(HC[:,0,0])/12)+" years")
         for lat in range(len(HC[0,:,0])):
+            dA = area(depth_from,lat-83)
             for lon in range(len(HC[0,0,:])):
-                ttl_global[i] += HC[i,lat,lon]*area(depth_from, lat-83)
+                ttl_global[i] += HC[i,lat,lon]*dA
     return ttl_global
                 
     
@@ -124,6 +128,16 @@ def moving_avg(times, HC,s):
         m[i] = np.mean(HC[n-s:n+s])
         
     return times, m
+
+def std_baseline(ttl_gbl):
+    std_dev = np.std(ttl_gbl)
+    mean = np.mean(ttl_gbl)
+    base_yrs_end = np.where(ttl_gbl > (mean+std_dev))[0][0]
+    ttl_gbl -= np.mean(ttl_gbl[:base_yrs_end])
+    print(base_yrs_end)
+    
+    return ttl_gbl
+    
 
 
 def run(start_year, end_year, depth_from, depth_to):
@@ -142,12 +156,13 @@ def run(start_year, end_year, depth_from, depth_to):
     
     total_global = ttl_global_HC(depth_from, HC)
     times2, total_global = moving_avg(times, total_global, 12)
+    total_global = std_baseline(total_global)
     fig2, ax = plt.subplots(figsize=(6.5, 4))
     ax.plot(times2, total_global)
     plt.xlabel("Year")
-    plt.ylabel("Total global HC 0m-1000m (J)")
+    plt.ylabel("Total global HC 0m-1000m in J (moving average)")
     plt.grid(color="white")
     plt.show()
 
 
-run(1950, 1964, 0, 1000)
+run(1950, 2018, 0, 1000)
