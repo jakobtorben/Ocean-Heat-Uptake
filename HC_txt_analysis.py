@@ -155,14 +155,14 @@ def run(start_year, end_year, depth_from, depth_to):
 #    plt.show()
     
     total_global = ttl_global_HC(depth_from, HC)
+    np.savetxt("HC_G_"+str(start_year)+"_"+str(end_year)+"_"+str(depth_from)+"m_"+str(depth_to)+"m.txt",(times,total_global),delimiter=", ")
+    np.savetxt("HC_G_anom_"+str(start_year)+"_"+str(end_year)+"_"+str(depth_from)+"m_"+str(depth_to)+"m.txt",(times,std_baseline(total_global)),delimiter=", ")
     times2, total_global = moving_avg(times, total_global, 12)
+    np.savetxt("HC_G_MA_"+str(start_year)+"_"+str(end_year)+"_"+str(depth_from)+"m_"+str(depth_to)+"m.txt",(times2, total_global),delimiter=", ")
     total_global = std_baseline(total_global)
-    fig2, ax = plt.subplots(figsize=(6.5, 4))
-    ax.plot(times2, total_global)
-    plt.xlabel("Year")
-    plt.ylabel("Total global HC 0m-1000m in J (moving average)")
-    plt.grid(color="white")
-    plt.show()
+    np.savetxt("HC_G_MA_anom_"+str(start_year)+"_"+str(end_year)+"_"+str(depth_from)+"m_"+str(depth_to)+"m.txt",(times2,total_global),delimiter=", ")
+
+
 
 
 run(1950, 2018, 0, 1000)
