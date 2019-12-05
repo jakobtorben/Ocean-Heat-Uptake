@@ -109,6 +109,7 @@ def calculate_HC_global(rootgrps,start_year,depth_from_i,depth_to_i):
     depths_i = rootgrps[0]["depth"][:]
     HC_grid_i = np.ma.zeros([len(rootgrps),len(lat),len(lon)])
     HC_grid = np.ma.masked_all_like(HC_grid_i)
+    HC_grid2 = np.ma.masked_all_like(HC_grid_i)
     #HC_grid_i = np.ma.zeros([len(lat), len(lon)])
     #HC_grid = np.ma.masked_all_like(HC_grid_i)
     year = start_year
@@ -133,17 +134,43 @@ def calculate_HC_global(rootgrps,start_year,depth_from_i,depth_to_i):
                         cs = interp1d(depths,temps,kind='cubic')
                         xs = np.arange(depths[0],depths[len(depths)-1],1) #depths spaced by 1m
                         theta = cs(xs)
-                        ones = np.ones((len(xs)))
-                        HC_grid[i,lt,ln] = np.dot(theta,ones)
+                        #plt.plot(depths, temps)
+                        #plt.plot(xs, theta)
+#                        print("depths", xs[20], len(xs))
+#                        print("temps", temps[4], depths[4])
+#                        print("theta", theta[20])
+#                        print(theta[20]*theta[20], "sqrt", np.sqrt(theta[20]*theta[20]))
+                        ones = np.ones((len(xs))) 
+                        HC_grid[i,lt,ln] = np.sqrt(np.dot(theta,theta))
+                        HC_grid2[i,lt,ln] = np.dot(theta,ones)
+                        #print("bef", np.sqrt(np.dot(theta,theta)))
+        print("after sqer", HC_grid)
+        print("ones", HC_grid2)
         HC_i = HC_grid[i,:,:]*rho*Cp
-        np.savetxt("HC_grid_uncertainty"+"year_"+str(year)+"_month_"+str(month)+"_"+str(depth_from_i)+"m_"+str(depth_to_i)+"m.txt",HC_i,delimiter=", ")
+        HC_i2 = HC_grid2[i,:,:]*rho*Cp
+
+        #np.savetxt("HC_grid_uncertainty_"+"year_"+str(year)+"_month_"+str(month)+"_"+str(depth_from_i)+"m_"+str(depth_to_i)+"m.txt",HC_i,delimiter=", ")
         if month < 12:
             month += 1
         else:
             month = 1
             year += 1
+    HC_i = ttl_global_HC(0, HC_i)
+    HC_i2 = ttl_global_HC(0, HC_i2)
+    print("total", HC_i, HC_i2)
     HC_grid *= rho*Cp
     return HC_grid
+
+def ttl_global_HC(depth_from, HC):
+    ttl_global = np.zeros((len(HC[:,0,0])))
+    for i in range(len(HC[:,0,0])):
+        #if i%60 == 0:
+            #print("Calculated "+str(i/12)+" of "+str(len(HC[:,0,0])/12)+" years")
+        for lat in range(len(HC[0,:,0])):
+            dA = area(depth_from,lat-83)
+            for lon in range(len(HC[0,0,:])):
+                ttl_global += HC[i,lat,lon]*dA
+    return ttl_global
 
 
 def monthly_avgs(HC):
@@ -210,7 +237,7 @@ def plot(rootgrps, HC_grid):
         plt.show()
 
 #years, times, HC, pos, months, month_avgs = run(1950, 2018, 25, 31)
-HC = run_global(1950, 1952, 0, 1000, False)
+HC = run_global(1950, 1950, 0, 1000, False)
 
 #fig, ax = plt.subplots(figsize=(6.5, 4))
 #ax.plot(depths,temps0,"x")
