@@ -15,3 +15,8 @@ From 1970-2016, the OHC increased by 24.4× 10^22 J for the 0-2000 m layer, with
 The ocean heat uptake experienced an acceleration around 1997, which is likely linked to a recovery in OHC from the volcanic eruption Mt Pinatubo (1991) masking the acceleration that would have otherwise been observed.
 In addition, it was likely linked to a reduced samplingerror from an increase in observational coverage from the Argo programme.
 The warming was strongest in the Southern and tropical/subtropical Atlantic Oceans, for periods of both low and high observational influence, revealing a robust footprint of global warming.
+
+
+<b> Highlight results </b>
+
+![Ocean Heat Content Change 1950-2018](https://github.com/jakobtorben/Ocean-Heat-Uptake/blob/master/Figures/3_year_global_depthfix.png?raw=true)
